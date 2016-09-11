@@ -16,6 +16,10 @@ import (
 	"gopkg.in/robfig/cron.v2"
 )
 
+var (
+	delayer = NewDelayer()
+)
+
 // Callers can use jobs.Func to wrap a raw func.
 // (Copying the type to this package makes it more visible)
 //
@@ -53,4 +57,8 @@ func In(duration time.Duration, job cron.Job) {
 		time.Sleep(duration)
 		New(job).Run()
 	}()
+}
+
+func Delayed(duration time.Duration, job cron.Job) {
+	go delayer.Process(duration, job)
 }
