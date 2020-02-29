@@ -25,19 +25,19 @@ var (
 	magenta = string([]byte{27, 91, 57, 55, 59, 52, 53, 109})
 	reset   = string([]byte{27, 91, 48, 109})
 
-	functions =[]interface{}{makeWorkPermits,isSelfConcurrent}
+	functions = []interface{}{makeWorkPermits, isSelfConcurrent}
 )
 
 func makeWorkPermits(bufferCapacity int) {
-	if bufferCapacity <=0 {
+	if bufferCapacity <= 0 {
 		workPermits = make(chan struct{}, DEFAULT_JOB_POOL_SIZE)
 	} else {
 		workPermits = make(chan struct{}, bufferCapacity)
 	}
 }
 
-func isSelfConcurrent(cocnurrencyFlag int) {
-	if cocnurrencyFlag <=0 {
+func isSelfConcurrent(concurrencyFlag int) {
+	if concurrencyFlag <= 0 {
 		selfConcurrent = false
 	} else {
 		selfConcurrent = true
@@ -47,10 +47,9 @@ func isSelfConcurrent(cocnurrencyFlag int) {
 func Start(v ...int) {
 	MainCron = cron.New()
 
-	for i,option := range v {
+	for i, option := range v {
 		functions[i].(func(int))(option)
 	}
-
 
 	MainCron.Start()
 

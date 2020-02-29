@@ -34,6 +34,7 @@ func Schedule(spec string, job cron.Job) error {
 	if err != nil {
 		return err
 	}
+
 	MainCron.Schedule(sched, New(job))
 	return nil
 }
@@ -42,7 +43,6 @@ func Schedule(spec string, job cron.Job) error {
 // The interval provided is the time between the job ending and the job being run again.
 // The time that the job takes to run is not included in the interval.
 func Every(duration time.Duration, job cron.Job) {
-
 	MainCron.Schedule(cron.Every(duration), New(job))
 }
 
