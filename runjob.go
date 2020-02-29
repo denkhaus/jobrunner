@@ -13,6 +13,8 @@ package jobrunner
 import (
 	"time"
 
+	"github.com/denkhaus/jobrunner/schedules"
+
 	"github.com/robfig/cron/v3"
 )
 
@@ -29,6 +31,16 @@ type Func func()
 
 func (r Func) Run() { r() }
 
+// cleanCron removes all cron entries with next start time equals zero time
+func cleanCron() {
+	now := time.Now().In(MainCron.Location())
+	for _, entry := range MainCron.Entries() {
+		if entry.Schedule.Next(now).IsZero() {
+			MainCron.Remove(entry.ID)
+		}
+	}
+}
+
 func Schedule(spec string, job cron.Job) error {
 	sched, err := cron.ParseStandard(spec)
 	if err != nil {
@@ -44,21 +56,37 @@ func Schedule(spec string, job cron.Job) error {
 // The time that the job takes to run is not included in the interval.
 func Every(duration time.Duration, job cron.Job) {
 	MainCron.Schedule(cron.Every(duration), New(job))
+	go cleanCron()
 }
 
 // Run the given job right now.
-func Now(job cron.Job) {
-	go New(job).Run()
+func OnceNow(job cron.Job) {
+	MainCron.Schedule(schedules.OnceNow(), New(job))
+	go cleanCron()
 }
 
-// Run the given job once, after the given delay.
-func In(duration time.Duration, job cron.Job) {
-	go func() {
-		time.Sleep(duration)
-		New(job).Run()
-	}()
+// Run the given job N times at a fixed interval.
+func NTimesEvery(times int, duration time.Duration, job cron.Job) {
+	MainCron.Schedule(schedules.NTimesEvery(times, duration), New(job))
+	go cleanCron()
 }
 
-func Delayed(duration time.Duration, job cron.Job) {
-	go delayer.Process(duration, job)
+// Run the given job debounced. Consecutive calls on the same job
+// will defer the execution time by given duration.
+func Debounced(duration time.Duration, job cron.Job) {
+	newJob := New(job)
+	var found cron.Entry
+	for _, entry := range MainCron.Entries() {
+		if entry.Job.(*Job).Name == newJob.Name {
+			found = entry
+			break
+		}
+	}
+
+	if found.Valid() {
+		MainCron.Remove(found.ID)
+	}
+
+	MainCron.Schedule(schedules.NTimesEvery(1, duration), newJob)
+	go cleanCron()
 }

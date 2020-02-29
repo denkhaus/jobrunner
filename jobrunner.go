@@ -5,6 +5,7 @@ import (
 	"log"
 	"reflect"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,7 +25,10 @@ type Job struct {
 const UNNAMED = "(unnamed)"
 
 func New(job cron.Job) *Job {
-	name := reflect.TypeOf(job).Name()
+	name := strings.TrimPrefix(
+		reflect.TypeOf(job).String(), "*",
+	)
+
 	if name == "Func" {
 		name = UNNAMED
 	}
