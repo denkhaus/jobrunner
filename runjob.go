@@ -13,7 +13,7 @@ package jobrunner
 import (
 	"time"
 
-	"gopkg.in/robfig/cron.v2"
+	"github.com/robfig/cron/v3"
 )
 
 var (
@@ -30,7 +30,7 @@ type Func func()
 func (r Func) Run() { r() }
 
 func Schedule(spec string, job cron.Job) error {
-	sched, err := cron.Parse(spec)
+	sched, err := cron.ParseStandard(spec)
 	if err != nil {
 		return err
 	}
