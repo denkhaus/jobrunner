@@ -10,20 +10,18 @@ type TestJob struct {
 
 var testCount int
 
-func (p *TestJob) Run() {
+func (p TestJob) Run() {
 	testCount++
 }
 
-func newTestJob() *TestJob {
-	return &TestJob{}
-}
 func TestDebounce(t *testing.T) {
 	testCount = 0
 	Start()
 
-	Debounced(5*time.Second, newTestJob())
+	job := New("Debounced", TestJob{})
+	Debounced(5*time.Second, job)
 	time.Sleep(3 * time.Second)
-	Debounced(5*time.Second, newTestJob())
+	Debounced(5*time.Second, job)
 	time.Sleep(6 * time.Second)
 
 	if testCount != 1 {
@@ -36,7 +34,8 @@ func TestNTimesEvery(t *testing.T) {
 	testCount = 0
 	Start()
 
-	NTimesEvery(5, 5*time.Second, newTestJob())
+	job := New("NTimesEvery", TestJob{})
+	NTimesEvery(5, 5*time.Second, job)
 	time.Sleep(27 * time.Second)
 
 	if testCount != 5 {
@@ -49,7 +48,8 @@ func TestOnceNow(t *testing.T) {
 	testCount = 0
 	Start()
 
-	OnceNow(newTestJob())
+	job := New("OnceNow", TestJob{})
+	OnceNow(job)
 	time.Sleep(5 * time.Second)
 
 	if testCount != 1 {
@@ -62,7 +62,8 @@ func TestEvery(t *testing.T) {
 	testCount = 0
 	Start()
 
-	Every(2*time.Second, newTestJob())
+	job := New("Every", TestJob{})
+	Every(2*time.Second, job)
 	time.Sleep(11 * time.Second)
 
 	if testCount != 5 {

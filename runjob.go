@@ -14,12 +14,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/jobrunner/schedules"
-
 	"github.com/robfig/cron/v3"
-)
-
-var (
-	delayer = NewDelayer()
 )
 
 // Callers can use jobs.Func to wrap a raw func.
@@ -41,43 +36,42 @@ func cleanCron() {
 	}
 }
 
-func Schedule(spec string, job cron.Job) error {
+func Schedule(spec string, job *Job) error {
 	sched, err := cron.ParseStandard(spec)
 	if err != nil {
 		return err
 	}
 
-	MainCron.Schedule(sched, New(job))
+	MainCron.Schedule(sched, job)
 	return nil
 }
 
 // Run the given job at a fixed interval.
 // The interval provided is the time between the job ending and the job being run again.
 // The time that the job takes to run is not included in the interval.
-func Every(duration time.Duration, job cron.Job) {
-	MainCron.Schedule(cron.Every(duration), New(job))
+func Every(duration time.Duration, job *Job) {
+	MainCron.Schedule(cron.Every(duration), job)
 	go cleanCron()
 }
 
 // Run the given job right now.
-func OnceNow(job cron.Job) {
-	MainCron.Schedule(schedules.OnceNow(), New(job))
+func OnceNow(job *Job) {
+	MainCron.Schedule(schedules.OnceNow(), job)
 	go cleanCron()
 }
 
 // Run the given job N times at a fixed interval.
-func NTimesEvery(times int, duration time.Duration, job cron.Job) {
-	MainCron.Schedule(schedules.NTimesEvery(times, duration), New(job))
+func NTimesEvery(times int, duration time.Duration, job *Job) {
+	MainCron.Schedule(schedules.NTimesEvery(times, duration), job)
 	go cleanCron()
 }
 
 // Run the given job debounced. Consecutive calls on the same job
 // will defer the execution time by given duration.
-func Debounced(duration time.Duration, job cron.Job) {
-	newJob := New(job)
+func Debounced(duration time.Duration, job *Job) {
 	var found cron.Entry
 	for _, entry := range MainCron.Entries() {
-		if entry.Job.(*Job).Name == newJob.Name {
+		if entry.Job.(*Job).Name == job.Name {
 			found = entry
 			break
 		}
@@ -87,6 +81,6 @@ func Debounced(duration time.Duration, job cron.Job) {
 		MainCron.Remove(found.ID)
 	}
 
-	MainCron.Schedule(schedules.NTimesEvery(1, duration), newJob)
+	MainCron.Schedule(schedules.NTimesEvery(1, duration), job)
 	go cleanCron()
 }

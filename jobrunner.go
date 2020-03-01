@@ -3,9 +3,7 @@ package jobrunner
 import (
 	"bytes"
 	"log"
-	"reflect"
 	"runtime/debug"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,16 +20,7 @@ type Job struct {
 	running sync.Mutex
 }
 
-const UNNAMED = "(unnamed)"
-
-func New(job cron.Job) *Job {
-	name := strings.TrimPrefix(
-		reflect.TypeOf(job).String(), "*",
-	)
-
-	if name == "Func" {
-		name = UNNAMED
-	}
+func New(name string, job cron.Job) *Job {
 	return &Job{
 		Name:  name,
 		inner: job,
