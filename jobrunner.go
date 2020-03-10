@@ -5,42 +5,49 @@ import (
 	"log"
 	"runtime/debug"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/robfig/cron/v3"
 )
 
+type TaskState uint32
+type JobFunc func() error
+
+const (
+	TaskStateIdle TaskState = iota + 1
+	TaskStateRunning
+	TaskStateFinished
+)
+
 type Job struct {
-	Name    string
-	inner   cron.Job
-	status  uint32
-	Status  string
-	Latency string
-	running sync.Mutex
+	Name     string
+	jobFunc  JobFunc
+	state    TaskState
+	RunStart time.Time
+	RunEnd   time.Time
+	Next     time.Time
+	Prev     time.Time
+	Result   error
+	EntryID  cron.EntryID
+	running  sync.Mutex
+	stateMu  sync.Mutex
 }
 
-func New(name string, job cron.Job) *Job {
+func New(name string, fn JobFunc) *Job {
 	return &Job{
-		Name:  name,
-		inner: job,
+		Name:    name,
+		EntryID: -1,
+		jobFunc: fn,
 	}
 }
 
-func (j *Job) StatusUpdate() string {
-	if atomic.LoadUint32(&j.status) > 0 {
-		j.Status = "RUNNING"
-		return j.Status
-	}
-	j.Status = "IDLE"
-	return j.Status
-
+func (j *Job) setState(state TaskState) {
+	j.stateMu.Lock()
+	defer j.stateMu.Unlock()
+	j.state = state
 }
 
 func (j *Job) Run() {
-	start := time.Now()
-	// If the job panics, just print a stack trace.
-	// Don't let the whole process die.
 	defer func() {
 		if err := recover(); err != nil {
 			var buf bytes.Buffer
@@ -59,15 +66,13 @@ func (j *Job) Run() {
 		defer func() { <-workPermits }()
 	}
 
-	atomic.StoreUint32(&j.status, 1)
-	j.StatusUpdate()
+	j.setState(TaskStateRunning)
+	j.RunStart = time.Now().UTC()
 
-	defer j.StatusUpdate()
-	defer atomic.StoreUint32(&j.status, 0)
+	defer func() {
+		j.setState(TaskStateIdle)
+		j.RunEnd = time.Now().UTC()
+	}()
 
-	j.inner.Run()
-
-	end := time.Now()
-	j.Latency = end.Sub(start).String()
-
+	j.Result = j.jobFunc()
 }

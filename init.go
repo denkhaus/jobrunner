@@ -11,7 +11,7 @@ const DEFAULT_JOB_POOL_SIZE = 10
 
 var (
 	// Singleton instance of the underlying job scheduler.
-	MainCron *cron.Cron
+	mainCron *cron.Cron
 
 	// This limits the number of jobs allowed to run concurrently.
 	workPermits chan struct{}
@@ -45,14 +45,12 @@ func isSelfConcurrent(concurrencyFlag int) {
 }
 
 func Start(v ...int) {
-	MainCron = cron.New()
-
+	mainCron = cron.New()
 	for i, option := range v {
 		functions[i].(func(int))(option)
 	}
 
-	MainCron.Start()
-
+	mainCron.Start()
 	fmt.Printf("%s[JobRunner] %v Started... %s \n",
 		magenta, time.Now().Format("2006/01/02 - 15:04:05"), reset)
 

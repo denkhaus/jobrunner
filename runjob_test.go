@@ -5,20 +5,18 @@ import (
 	"time"
 )
 
-type TestJob struct {
-}
-
 var testCount int
 
-func (p TestJob) Run() {
+func testFunc() error {
 	testCount++
+	return nil
 }
 
 func TestDebounce(t *testing.T) {
 	testCount = 0
 	Start()
 
-	job := New("Debounced", TestJob{})
+	job := New("Debounced", testFunc)
 	Debounced(5*time.Second, job)
 	time.Sleep(3 * time.Second)
 	Debounced(5*time.Second, job)
@@ -34,7 +32,7 @@ func TestNTimesEvery(t *testing.T) {
 	testCount = 0
 	Start()
 
-	job := New("NTimesEvery", TestJob{})
+	job := New("NTimesEvery", testFunc)
 	NTimesEvery(5, 5*time.Second, job)
 	time.Sleep(27 * time.Second)
 
@@ -48,7 +46,7 @@ func TestOnceNow(t *testing.T) {
 	testCount = 0
 	Start()
 
-	job := New("OnceNow", TestJob{})
+	job := New("OnceNow", testFunc)
 	OnceNow(job)
 	time.Sleep(5 * time.Second)
 
@@ -62,7 +60,7 @@ func TestEvery(t *testing.T) {
 	testCount = 0
 	Start()
 
-	job := New("Every", TestJob{})
+	job := New("Every", testFunc)
 	Every(2*time.Second, job)
 	time.Sleep(11 * time.Second)
 

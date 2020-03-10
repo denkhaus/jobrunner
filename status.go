@@ -16,12 +16,11 @@ type StatusData struct {
 // Return detailed list of currently running recurring jobs
 // to remove an entry, first retrieve the ID of entry
 func Entries() []cron.Entry {
-	return MainCron.Entries()
+	return mainCron.Entries()
 }
 
-func StatusPage() []StatusData {
-
-	ents := MainCron.Entries()
+func Status() []StatusData {
+	ents := mainCron.Entries()
 
 	Statuses := make([]StatusData, len(ents))
 	for k, v := range ents {
@@ -32,21 +31,13 @@ func StatusPage() []StatusData {
 
 	}
 
-	// t := template.New("status_page")
-
-	// var data bytes.Buffer
-	// t, _ = t.ParseFiles("views/Status.html")
-
-	// t.ExecuteTemplate(&data, "status_page", Statuses())
 	return Statuses
 }
 
 func StatusJson() map[string]interface{} {
-
 	return map[string]interface{}{
-		"jobrunner": StatusPage(),
+		"jobrunner": Status(),
 	}
-
 }
 
 func AddJob(job cron.Job) *Job {
