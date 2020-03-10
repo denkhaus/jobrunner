@@ -1,7 +1,6 @@
 package jobrunner
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -10,6 +9,7 @@ import (
 const DEFAULT_JOB_POOL_SIZE = 10
 
 var (
+	stateUpdateDuration time.Duration
 	// Singleton instance of the underlying job scheduler.
 	mainCron *cron.Cron
 
@@ -21,11 +21,7 @@ var (
 )
 
 var (
-	green   = string([]byte{27, 91, 57, 55, 59, 52, 50, 109})
-	magenta = string([]byte{27, 91, 57, 55, 59, 52, 53, 109})
-	reset   = string([]byte{27, 91, 48, 109})
-
-	functions = []interface{}{makeWorkPermits, isSelfConcurrent}
+	functions = []interface{}{makeWorkPermits, isSelfConcurrent, updateduration}
 )
 
 func makeWorkPermits(bufferCapacity int) {
@@ -44,6 +40,10 @@ func isSelfConcurrent(concurrencyFlag int) {
 	}
 }
 
+func updateduration(dur int) {
+	stateUpdateDuration = time.Second * time.Duration(dur)
+}
+
 func Start(v ...int) {
 	mainCron = cron.New()
 	for i, option := range v {
@@ -51,7 +51,5 @@ func Start(v ...int) {
 	}
 
 	mainCron.Start()
-	fmt.Printf("%s[JobRunner] %v Started... %s \n",
-		magenta, time.Now().Format("2006/01/02 - 15:04:05"), reset)
-
+	go triggerStateUpdates(stateUpdateDuration)
 }

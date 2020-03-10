@@ -1,45 +1,47 @@
 package jobrunner
 
-import (
-	"time"
+import "time"
 
-	"github.com/robfig/cron/v3"
+type JobChangedFunc func(*Job)
+
+var (
+	onJobStateChanged JobChangedFunc
 )
 
-type StatusData struct {
-	Id        cron.EntryID
-	JobRunner *Job
-	Next      time.Time
-	Prev      time.Time
+func OnJobStateChanged(fn func(*Job)) {
+	onJobStateChanged = fn
 }
 
-// Return detailed list of currently running recurring jobs
-// to remove an entry, first retrieve the ID of entry
-func Entries() []cron.Entry {
-	return mainCron.Entries()
-}
-
-func Status() []StatusData {
-	ents := mainCron.Entries()
-
-	Statuses := make([]StatusData, len(ents))
-	for k, v := range ents {
-		Statuses[k].Id = v.ID
-		Statuses[k].JobRunner = AddJob(v.Job)
-		Statuses[k].Next = v.Next
-		Statuses[k].Prev = v.Prev
-
-	}
-
-	return Statuses
-}
-
-func StatusJson() map[string]interface{} {
-	return map[string]interface{}{
-		"jobrunner": Status(),
+func triggerOnJobStateChanged(job *Job) {
+	if onJobStateChanged != nil {
+		onJobStateChanged(job)
 	}
 }
 
-func AddJob(job cron.Job) *Job {
-	return job.(*Job)
+func triggerStateUpdates(dur time.Duration) {
+	updateState := func() {
+		jobListMu.Lock()
+		jobListMu.Unlock()
+
+		for _, entry := range mainCron.Entries() {
+			changed := false
+			jobList[entry.ID].stateMu.Lock()
+			if jobList[entry.ID].Next != entry.Next {
+				jobList[entry.ID].Next = entry.Next
+				changed = true
+			}
+			if jobList[entry.ID].Prev != entry.Prev {
+				jobList[entry.ID].Prev = entry.Prev
+				changed = true
+			}
+			jobList[entry.ID].stateMu.Unlock()
+			if changed {
+				triggerOnJobStateChanged(jobList[entry.ID])
+			}
+		}
+	}
+
+	for _ = range time.Tick(dur) {
+		updateState()
+	}
 }

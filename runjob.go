@@ -8,8 +8,6 @@ package jobrunner
 //    limit resource consumption.
 // 3. (Optional) Protection against multiple instances of a single job running
 //    concurrently.  If one execution runs into the next, the next will be queued.
-// 4. Cron expressions may be defined in app.conf and are reusable across jobs.
-// 5. Job status reporting. [WIP]
 
 import (
 	"sync"
@@ -27,10 +25,11 @@ var (
 )
 
 //addJob adds a Jon
-func addJob(job *Job) {
+func addJob(job *Job) cron.EntryID {
 	jobListMu.Lock()
 	jobListMu.Unlock()
 	jobList[job.EntryID] = job
+	return job.EntryID
 }
 
 //removeJob removes a Job
@@ -60,8 +59,7 @@ func Schedule(spec string, job *Job) (cron.EntryID, error) {
 
 	defer func() { go cleanCron() }()
 	job.EntryID = mainCron.Schedule(sched, job)
-	addJob(job)
-	return job.EntryID, nil
+	return addJob(job), nil
 }
 
 // Run the given job at a fixed interval.
@@ -70,24 +68,21 @@ func Schedule(spec string, job *Job) (cron.EntryID, error) {
 func Every(duration time.Duration, job *Job) cron.EntryID {
 	defer func() { go cleanCron() }()
 	job.EntryID = mainCron.Schedule(cron.Every(duration), job)
-	addJob(job)
-	return job.EntryID
+	return addJob(job)
 }
 
 // Run the given job right now.
 func OnceNow(job *Job) cron.EntryID {
 	defer func() { go cleanCron() }()
 	job.EntryID = mainCron.Schedule(schedules.OnceNow(), job)
-	addJob(job)
-	return job.EntryID
+	return addJob(job)
 }
 
 // Run the given job N times at a fixed interval.
 func NTimesEvery(times int, duration time.Duration, job *Job) cron.EntryID {
 	defer func() { go cleanCron() }()
 	job.EntryID = mainCron.Schedule(schedules.NTimesEvery(times, duration), job)
-	addJob(job)
-	return job.EntryID
+	return addJob(job)
 }
 
 // Run the given job debounced. Consecutive calls on the same job
@@ -108,18 +103,10 @@ func Debounced(duration time.Duration, job *Job) cron.EntryID {
 
 	defer func() { go cleanCron() }()
 	job.EntryID = mainCron.Schedule(schedules.NTimesEvery(1, duration), job)
-	addJob(job)
-	return job.EntryID
+	return addJob(job)
 }
 
-// Stop ALL active jobs from running at the next scheduled time
+// Stop all active jobs from running at the next scheduled time
 func Stop() {
 	go mainCron.Stop()
-}
-
-// Remove a specific job from running
-// Get EntryID from the list job entries jobrunner.Entries()
-// If job is in the middle of running, once the process is finished it will be removed
-func Remove(id cron.EntryID) {
-	mainCron.Remove(id)
 }
