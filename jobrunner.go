@@ -59,6 +59,10 @@ func (j *Job) setState(state TaskState, trigger bool) {
 
 func (j *Job) Run() {
 	defer func() {
+		j.RunEnd = time.Now().UTC()
+		j.setState(Idle, true)
+		cleanCron()
+
 		if err := recover(); err != nil {
 			var buf bytes.Buffer
 			logger := log.New(&buf, "JobRunner Log: ", log.Lshortfile)
@@ -78,12 +82,6 @@ func (j *Job) Run() {
 
 	j.setState(Running, true)
 	j.RunStart = time.Now().UTC()
-
-	defer func() {
-		j.setState(Idle, true)
-		j.RunEnd = time.Now().UTC()
-	}()
-
 	j.Result = j.jobFunc()
 }
 
