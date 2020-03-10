@@ -98,9 +98,11 @@ func (j *Job) hash() []byte {
 	h = xor16(h, hashMd5([]byte(j.RunEnd.Format(time.RFC3339))))
 	h = xor16(h, hashMd5([]byte(j.Prev.Format(time.RFC3339))))
 	h = xor16(h, hashMd5([]byte(j.Next.Format(time.RFC3339))))
-	h = xor16(h, hashMd5([]byte(j.Result.Error())))
 	h = xor16(h, hashMd5([]byte(strconv.Itoa(int(j.state)))))
 	h = xor16(h, hashMd5([]byte(strconv.Itoa(int(j.EntryID)))))
+	if j.Result != nil {
+		h = xor16(h, hashMd5([]byte(j.Result.Error())))
+	}
 
 	return h
 }
