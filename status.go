@@ -24,17 +24,12 @@ func triggerStateUpdates(dur time.Duration) {
 		jobListMu.Unlock()
 
 		for _, entry := range mainCron.Entries() {
-			changed := false
 			jobList[entry.ID].stateMu.Lock()
-			if jobList[entry.ID].Next != entry.Next {
-				jobList[entry.ID].Next = entry.Next
-				changed = true
-			}
-			if jobList[entry.ID].Prev != entry.Prev {
-				jobList[entry.ID].Prev = entry.Prev
-				changed = true
-			}
+			jobList[entry.ID].Next = entry.Next
+			jobList[entry.ID].Prev = entry.Prev
+			changed := jobList[entry.ID].changed()
 			jobList[entry.ID].stateMu.Unlock()
+
 			if changed {
 				triggerOnJobStateChanged(jobList[entry.ID])
 			}
