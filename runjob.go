@@ -28,14 +28,19 @@ var (
 func addJob(job *Job) cron.EntryID {
 	jobListMu.Lock()
 	jobListMu.Unlock()
+
+	job.setState(Idle, false)
 	jobList[job.EntryID] = job
+	triggerOnJobStateChanged(job)
+
 	return job.EntryID
 }
 
 //removeJob removes a Job
-func removeJob(job *Job) {
+func removeJob(job *Job, triggerStateUpdate bool) {
 	jobListMu.Lock()
 	jobListMu.Unlock()
+	job.setState(Finished, triggerStateUpdate)
 	delete(jobList, job.EntryID)
 }
 
@@ -46,7 +51,7 @@ func cleanCron() {
 	for _, entry := range mainCron.Entries() {
 		if entry.Schedule.Next(now).IsZero() {
 			mainCron.Remove(entry.ID)
-			removeJob(entry.Job.(*Job))
+			removeJob(entry.Job.(*Job), true)
 		}
 	}
 }
@@ -97,7 +102,7 @@ func Debounced(duration time.Duration, job *Job) cron.EntryID {
 	}
 
 	if found != nil && found.Valid() {
-		removeJob(found.Job.(*Job))
+		removeJob(found.Job.(*Job), false)
 		mainCron.Remove(found.ID)
 	}
 

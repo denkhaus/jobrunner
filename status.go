@@ -13,7 +13,7 @@ func OnJobStateChanged(fn func(*Job)) {
 }
 
 func triggerOnJobStateChanged(job *Job) {
-	if onJobStateChanged != nil {
+	if onJobStateChanged != nil && job.changed() {
 		onJobStateChanged(job)
 	}
 }
@@ -27,12 +27,8 @@ func triggerStateUpdates(dur time.Duration) {
 			jobList[entry.ID].stateMu.Lock()
 			jobList[entry.ID].Next = entry.Next
 			jobList[entry.ID].Prev = entry.Prev
-			changed := jobList[entry.ID].changed()
 			jobList[entry.ID].stateMu.Unlock()
-
-			if changed {
-				triggerOnJobStateChanged(jobList[entry.ID])
-			}
+			triggerOnJobStateChanged(jobList[entry.ID])
 		}
 	}
 

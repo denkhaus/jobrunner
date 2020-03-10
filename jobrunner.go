@@ -1,8 +1,11 @@
 package jobrunner
 
+//go:generate stringer -type=TaskState
+
 import (
 	"bytes"
 	"crypto/md5"
+	"fmt"
 	"log"
 	"runtime/debug"
 	"strconv"
@@ -16,9 +19,9 @@ type TaskState int
 type JobFunc func() error
 
 const (
-	TaskStateIdle TaskState = iota + 1
-	TaskStateRunning
-	TaskStateFinished
+	Idle TaskState = iota + 1
+	Running
+	Finished
 )
 
 type Job struct {
@@ -44,10 +47,14 @@ func New(name string, fn JobFunc) *Job {
 	}
 }
 
-func (j *Job) setState(state TaskState) {
+func (j *Job) setState(state TaskState, trigger bool) {
 	j.stateMu.Lock()
 	defer j.stateMu.Unlock()
 	j.state = state
+
+	if trigger {
+		triggerOnJobStateChanged(j)
+	}
 }
 
 func (j *Job) Run() {
@@ -69,18 +76,21 @@ func (j *Job) Run() {
 		defer func() { <-workPermits }()
 	}
 
-	j.setState(TaskStateRunning)
+	j.setState(Running, true)
 	j.RunStart = time.Now().UTC()
 
 	defer func() {
-		j.setState(TaskStateIdle)
+		j.setState(Idle, true)
 		j.RunEnd = time.Now().UTC()
 	}()
 
 	j.Result = j.jobFunc()
 }
 
-/////////////////////////////////////////////////////////////////////////////////////
+func (j *Job) String() string {
+	return fmt.Sprintf("%s-%s", j.Name, j.state)
+}
+
 func (j *Job) hash() []byte {
 	h := make([]byte, 16)
 	h = xor16(h, hashMd5([]byte(j.Name)))
@@ -95,7 +105,6 @@ func (j *Job) hash() []byte {
 	return h
 }
 
-/////////////////////////////////////////////////////////////////////////////////////
 func (j *Job) changed() bool {
 	h := j.hash()
 	c := bytes.Compare(h, j.lastHash)
