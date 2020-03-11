@@ -33,8 +33,8 @@ func TestNTimesEvery(t *testing.T) {
 	Start()
 
 	job := New("NTimesEvery", testFunc)
-	NTimesEvery(5, 5*time.Second, job)
-	time.Sleep(27 * time.Second)
+	NTimesEvery(5, 2*time.Second, job)
+	time.Sleep(20 * time.Second)
 
 	if testCount != 5 {
 		t.Error(testCount)

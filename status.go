@@ -8,17 +8,21 @@ var (
 	onJobStateChanged JobChangedFunc
 )
 
-func OnJobStateChanged(fn func(*Job)) {
+// With OnJobStateChanged you ddefine the state update callback
+func OnJobStateChanged(fn JobChangedFunc) {
 	onJobStateChanged = fn
 }
 
+//triggerOnJobStateChanged triggers state updates if a job has changed
 func triggerOnJobStateChanged(job *Job) {
 	if onJobStateChanged != nil && job.changed() {
 		onJobStateChanged(job)
 	}
 }
 
-func triggerStateUpdates(dur time.Duration) {
+//monitorStateUpdates triggers state updates if a job has changed
+//this func is blocking and intended to run as goroutine
+func monitorStateUpdates(dur time.Duration) {
 	updateState := func() {
 		jobListMu.Lock()
 		jobListMu.Unlock()

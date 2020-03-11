@@ -24,7 +24,7 @@ var (
 	jobListMu sync.Mutex
 )
 
-//addJob adds a Jon
+//addJob adds a Job and triggers a state update
 func addJob(job *Job) cron.EntryID {
 	jobListMu.Lock()
 	jobListMu.Unlock()
@@ -36,7 +36,7 @@ func addJob(job *Job) cron.EntryID {
 	return job.EntryID
 }
 
-//removeJob removes a Job
+//removeJob removes a Job and triggers a state update if needed
 func removeJob(job *Job, triggerStateUpdate bool) {
 	jobListMu.Lock()
 	jobListMu.Unlock()
@@ -45,7 +45,7 @@ func removeJob(job *Job, triggerStateUpdate bool) {
 }
 
 // cleanCron removes all cron entries with next start time
-// equals zero time to avoid job littering
+// equal to zero to avoid job littering
 func cleanCron() {
 	now := time.Now().In(mainCron.Location())
 	for _, entry := range mainCron.Entries() {
@@ -56,6 +56,7 @@ func cleanCron() {
 	}
 }
 
+// Schedule adds a Job to be run on the given schedule.
 func Schedule(spec string, job *Job) (cron.EntryID, error) {
 	sched, err := cron.ParseStandard(spec)
 	if err != nil {
