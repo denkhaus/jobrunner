@@ -93,22 +93,24 @@ func NTimesEvery(times int, duration time.Duration, job *Job) cron.EntryID {
 
 // Run the given job debounced. Consecutive calls on the same job
 // will defer the execution time by given duration.
-func Debounced(duration time.Duration, job *Job) cron.EntryID {
-	var found *cron.Entry
+func Debounced(dur time.Duration, job *Job) cron.EntryID {
+	var ent *cron.Entry
 	for _, entry := range mainCron.Entries() {
-		if entry.Job.(*Job).Name == job.Name {
-			found = &entry
+		if entry.Job.(*Job).UUID == job.UUID {
+			ent = &entry
 			break
 		}
 	}
 
-	if found != nil && found.Valid() {
-		removeJob(found.Job.(*Job), false)
-		mainCron.Remove(found.ID)
+	now := time.Now().In(mainCron.Location())
+	dt := now.Add(dur)
+	if ent != nil && ent.Valid() {
+		ent.Schedule.(*schedules.AbsoluteSchedule).Reset(dt)
+		return ent.ID
 	}
 
-	defer func() { go cleanCron() }()
-	job.EntryID = mainCron.Schedule(schedules.NTimesEvery(1, duration), job)
+	//defer func() { go cleanCron() }()
+	job.EntryID = mainCron.Schedule(schedules.Absolute(dt), job)
 	return addJob(job)
 }
 

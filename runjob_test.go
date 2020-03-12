@@ -21,6 +21,7 @@ func TestDebounce(t *testing.T) {
 		testCount++
 		return nil
 	}
+
 	OnJobStateChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -31,7 +32,7 @@ func TestDebounce(t *testing.T) {
 	Debounced(5*time.Second, job)
 	time.Sleep(3 * time.Second)
 	Debounced(5*time.Second, job)
-	time.Sleep(10 * time.Second)
+	time.Sleep(12 * time.Second)
 
 	if testCount != 1 {
 		t.Error(testCount)

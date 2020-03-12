@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/robfig/cron/v3"
+	uuid "github.com/satori/go.uuid"
 )
 
 type JobFunc func() error
@@ -35,6 +36,7 @@ type Job struct {
 	Next     time.Time
 	Prev     time.Time
 	Result   error
+	UUID     uuid.UUID
 	EntryID  cron.EntryID
 	lastHash []byte
 	running  sync.Mutex
@@ -45,6 +47,7 @@ type Job struct {
 func New(name string, fn JobFunc) *Job {
 	return &Job{
 		Name:    name,
+		UUID:    uuid.NewV4(),
 		EntryID: -1,
 		jobFunc: fn,
 	}
