@@ -1,6 +1,9 @@
 package jobrunner
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type JobChangedFunc func(*Job)
 
@@ -22,10 +25,10 @@ func triggerOnJobStateChanged(job *Job) {
 
 //monitorStateUpdates triggers state updates if a job has changed
 //this func is blocking and intended to run as goroutine
-func monitorStateUpdates(dur time.Duration) {
+func monitorStateUpdates(ctx context.Context, dur time.Duration) {
 	updateState := func() {
 		jobListMu.Lock()
-		jobListMu.Unlock()
+		defer jobListMu.Unlock()
 
 		for _, entry := range mainCron.Entries() {
 			jobList[entry.ID].stateMu.Lock()
@@ -36,7 +39,14 @@ func monitorStateUpdates(dur time.Duration) {
 		}
 	}
 
-	for _ = range time.Tick(dur) {
-		updateState()
+	ch := time.Tick(dur)
+
+	for {
+		select {
+		case <-ch:
+			updateState()
+		case <-ctx.Done():
+			return
+		}
 	}
 }

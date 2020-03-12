@@ -12,7 +12,7 @@ type Options struct {
 }
 
 var DefaultOptions = Options{
-	StateUpdateDuration: 15,
+	StateUpdateDuration: 15 * time.Second,
 	SelfConcurrent:      false,
 	WorkPermits:         make(chan struct{}, 10),
 }

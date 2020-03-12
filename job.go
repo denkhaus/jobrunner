@@ -53,8 +53,8 @@ func New(name string, fn JobFunc) *Job {
 // setState sets the Jobs state
 func (j *Job) setState(state TaskState, trigger bool) {
 	j.stateMu.Lock()
-	defer j.stateMu.Unlock()
 	j.state = state
+	j.stateMu.Unlock()
 
 	if trigger {
 		triggerOnJobStateChanged(j)
@@ -115,6 +115,9 @@ func (j *Job) hash() []byte {
 // changed compares the last Job hash with the current
 // so we find out if any properties have changed
 func (j *Job) changed() bool {
+	j.stateMu.Lock()
+	defer j.stateMu.Unlock()
+
 	h := j.hash()
 	c := bytes.Compare(h, j.lastHash)
 	j.lastHash = h

@@ -1,6 +1,8 @@
 package jobrunner
 
 import (
+	"context"
+
 	"github.com/robfig/cron/v3"
 )
 
@@ -11,12 +13,12 @@ var (
 	options = &DefaultOptions
 )
 
-func Start(opts ...Option) {
+func Start(ctx context.Context, opts ...Option) {
 	mainCron = cron.New()
 	for _, o := range opts {
 		o(options)
 	}
 
 	mainCron.Start()
-	go monitorStateUpdates(options.StateUpdateDuration)
+	go monitorStateUpdates(ctx, options.StateUpdateDuration)
 }

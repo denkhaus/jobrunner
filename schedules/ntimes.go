@@ -1,16 +1,18 @@
 package schedules
 
 import (
+	"sync"
 	"time"
 )
 
-// OnceIn represents a simple one time execution, e.g. "In 5 minutes".
+// NTimesEverySchedule represents a simple one time execution, e.g. "In 5 minutes".
 type NTimesEverySchedule struct {
-	Delay       time.Duration
-	Invocations int
+	mu          sync.Mutex
+	delay       time.Duration
+	invocations int
 }
 
-// OnceIn returns a crontab Schedule that activates once after a given duration.
+// NTimesEvery returns a crontab Schedule that activates once after a given duration.
 // Delays of less than a second are not supported (will round up to 1 second).
 // Any fields less than a Second are truncated.
 func NTimesEvery(times int, duration time.Duration) *NTimesEverySchedule {
@@ -19,17 +21,20 @@ func NTimesEvery(times int, duration time.Duration) *NTimesEverySchedule {
 	}
 
 	return &NTimesEverySchedule{
-		Invocations: times + 1,
-		Delay:       duration - time.Duration(duration.Nanoseconds())%time.Second,
+		invocations: times + 1,
+		delay:       duration - time.Duration(duration.Nanoseconds())%time.Second,
 	}
 }
 
 // Next returns the next time this should be run.
 // This rounds so that the next activation time will be on the second.
-func (schedule *NTimesEverySchedule) Next(t time.Time) time.Time {
-	if schedule.Invocations > 0 {
-		schedule.Invocations--
-		return t.Add(schedule.Delay - time.Duration(t.Nanosecond())*time.Nanosecond)
+func (p *NTimesEverySchedule) Next(t time.Time) time.Time {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.invocations > 0 {
+		p.invocations--
+		return t.Add(p.delay - time.Duration(t.Nanosecond())*time.Nanosecond)
 	}
 
 	return time.Time{}

@@ -27,7 +27,7 @@ var (
 //addJob adds a Job and triggers a state update
 func addJob(job *Job) cron.EntryID {
 	jobListMu.Lock()
-	jobListMu.Unlock()
+	defer jobListMu.Unlock()
 
 	job.setState(Idle, false)
 	jobList[job.EntryID] = job
@@ -39,7 +39,7 @@ func addJob(job *Job) cron.EntryID {
 //removeJob removes a Job and triggers a state update if needed
 func removeJob(job *Job, triggerStateUpdate bool) {
 	jobListMu.Lock()
-	jobListMu.Unlock()
+	defer jobListMu.Unlock()
 	job.setState(Finished, triggerStateUpdate)
 	delete(jobList, job.EntryID)
 }
