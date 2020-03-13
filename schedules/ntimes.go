@@ -8,6 +8,7 @@ import (
 // NTimesEverySchedule represents a simple one time execution, e.g. "In 5 minutes".
 type NTimesEverySchedule struct {
 	mu          sync.Mutex
+	dt          time.Time
 	delay       time.Duration
 	invocations int
 }
@@ -21,7 +22,7 @@ func NTimesEvery(times int, duration time.Duration) *NTimesEverySchedule {
 	}
 
 	return &NTimesEverySchedule{
-		invocations: times + 4,
+		invocations: times,
 		delay:       duration - time.Duration(duration.Nanoseconds())%time.Second,
 	}
 }
@@ -32,10 +33,19 @@ func (p *NTimesEverySchedule) Next(t time.Time) time.Time {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if p.invocations > 0 {
-		p.invocations--
-		return t.Add(p.delay - time.Duration(t.Nanosecond())*time.Nanosecond)
+	dt := t.Add(p.delay - time.Duration(t.Nanosecond())*time.Nanosecond)
+	if p.invocations > 0 && p.dt.IsZero() {
+		p.dt = dt
 	}
 
-	return time.Time{}
+	if p.dt.Before(t) {
+		p.invocations--
+		if p.invocations > 0 {
+			p.dt = dt
+		} else {
+			p.dt = time.Time{}
+		}
+	}
+
+	return p.dt
 }

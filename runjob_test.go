@@ -7,12 +7,24 @@ import (
 	"time"
 )
 
+var (
+	testOpts []Option
+)
+
 func stateChanged(j *Job) {
 	fmt.Printf("%s-%s p[%s] n[%s]\n",
 		j.Name, j.state,
 		j.Prev.Format(time.RFC3339),
 		j.Next.Format(time.RFC3339))
 
+}
+
+func init() {
+	testOpts = []Option{
+		WithPoolSize(10),
+		WithSelfConcurrent(false),
+		WithStateUpdateDuration(1 * time.Second),
+	}
 }
 
 func TestDebounce(t *testing.T) {
@@ -26,7 +38,7 @@ func TestDebounce(t *testing.T) {
 	OnJobStateChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	Start(ctx)
+	Start(ctx, testOpts...)
 	defer cancel()
 
 	job := New("Debounced", testFunc)
@@ -52,14 +64,14 @@ func TestNTimesEvery(t *testing.T) {
 	OnJobStateChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	Start(ctx)
+	Start(ctx, testOpts...)
 	defer cancel()
 
 	job := New("NTimesEvery", testFunc)
-	NTimesEvery(6, 2*time.Second, job)
+	NTimesEvery(8, 2*time.Second, job)
 	time.Sleep(20 * time.Second)
 
-	if testCount != 6 {
+	if testCount != 8 {
 		t.Error(testCount)
 		t.Fail()
 	}
@@ -76,7 +88,7 @@ func TestOnceNow(t *testing.T) {
 	OnJobStateChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	Start(ctx)
+	Start(ctx, testOpts...)
 	defer cancel()
 
 	job := New("OnceNow", testFunc)
@@ -100,11 +112,11 @@ func TestAt(t *testing.T) {
 	OnJobStateChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	Start(ctx)
+	Start(ctx, testOpts...)
 	defer cancel()
 
 	job := New("At", testFunc)
-	At(time.Now().Add(5*time.Second), job)
+	At(Now().Add(5*time.Second), job)
 	time.Sleep(11 * time.Second)
 
 	if testCount != 1 {
@@ -120,6 +132,7 @@ func TestEvery(t *testing.T) {
 		testCount++
 		return nil
 	}
+
 	OnJobStateChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 

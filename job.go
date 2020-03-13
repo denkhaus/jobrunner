@@ -17,7 +17,7 @@ import (
 
 type JobFunc func() error
 
-//TaskState is the stats a Job can run into
+//TaskState is the state a Job can run into
 type TaskState int
 
 const (
@@ -113,7 +113,7 @@ func (j *Job) hash() []byte {
 }
 
 // changed compares the last Job hash with the current
-// so we find out if any properties have changed
+// to find out if any properties have changed
 func (j *Job) changed() bool {
 	j.stateMu.Lock()
 	defer j.stateMu.Unlock()
