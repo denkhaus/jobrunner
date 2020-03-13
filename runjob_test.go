@@ -27,124 +27,110 @@ func init() {
 	}
 }
 
-func TestDebounce(t *testing.T) {
-	testCount := 0
-	testFunc := func() error {
-		fmt.Println("callback triggered")
-		testCount++
-		return nil
-	}
+type TestRunner struct {
+	count int
+}
 
+func (p *TestRunner) Run() error {
+	fmt.Println("callback triggered")
+	p.count++
+	return nil
+}
+
+func NewTestRunner() *TestRunner {
+	runner := &TestRunner{
+		count: 0,
+	}
+	return runner
+}
+
+func TestDebounce(t *testing.T) {
 	OnJobStateChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	Start(ctx, testOpts...)
 	defer cancel()
 
-	job := New("Debounced", testFunc)
+	runner := NewTestRunner()
+	job := New("Debounced", runner)
 	Debounced(5*time.Second, job)
 	time.Sleep(3 * time.Second)
 	Debounced(5*time.Second, job)
 	time.Sleep(12 * time.Second)
 
-	if testCount != 1 {
-		t.Error(testCount)
+	if runner.count != 1 {
+		t.Error(runner.count)
 		t.FailNow()
 	}
 }
 
 func TestNTimesEvery(t *testing.T) {
-	testCount := 0
-	testFunc := func() error {
-		fmt.Println("callback triggered")
-		testCount++
-		return nil
-	}
-
 	OnJobStateChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	Start(ctx, testOpts...)
 	defer cancel()
 
-	job := New("NTimesEvery", testFunc)
+	runner := NewTestRunner()
+	job := New("NTimesEvery", runner)
 	NTimesEvery(8, 2*time.Second, job)
 	time.Sleep(20 * time.Second)
 
-	if testCount != 8 {
-		t.Error(testCount)
+	if runner.count != 8 {
+		t.Error(runner.count)
 		t.Fail()
 	}
 }
 
 func TestOnceNow(t *testing.T) {
-	testCount := 0
-	testFunc := func() error {
-		fmt.Println("callback triggered")
-		testCount++
-		return nil
-	}
-
 	OnJobStateChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	Start(ctx, testOpts...)
 	defer cancel()
 
-	job := New("OnceNow", testFunc)
+	runner := NewTestRunner()
+	job := New("OnceNow", runner)
 	OnceNow(job)
 	time.Sleep(10 * time.Second)
 
-	if testCount != 1 {
-		t.Error(testCount)
+	if runner.count != 1 {
+		t.Error(runner.count)
 		t.Fail()
 	}
 }
 
 func TestAt(t *testing.T) {
-	testCount := 0
-	testFunc := func() error {
-		fmt.Println("callback triggered")
-		testCount++
-		return nil
-	}
-
 	OnJobStateChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	Start(ctx, testOpts...)
 	defer cancel()
 
-	job := New("At", testFunc)
+	runner := NewTestRunner()
+	job := New("At", runner)
 	At(Now().Add(5*time.Second), job)
 	time.Sleep(11 * time.Second)
 
-	if testCount != 1 {
-		t.Error(testCount)
+	if runner.count != 1 {
+		t.Error(runner.count)
 		t.Fail()
 	}
 }
 
 func TestEvery(t *testing.T) {
-	testCount := 0
-	testFunc := func() error {
-		fmt.Println("callback triggered")
-		testCount++
-		return nil
-	}
-
 	OnJobStateChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	Start(ctx)
 	defer cancel()
-
-	job := New("Every", testFunc)
+	runner := NewTestRunner()
+	job := New("Every", runner)
 	Every(2*time.Second, job)
 	time.Sleep(11 * time.Second)
 
-	if testCount != 5 {
-		t.Error(testCount)
+	if runner.count != 5 {
+		t.Error(runner.count)
 		t.Fail()
 	}
 }

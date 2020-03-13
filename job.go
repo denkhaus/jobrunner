@@ -15,7 +15,9 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-type JobFunc func() error
+type JobRunner interface {
+	Run() error
+}
 
 //TaskState is the state a Job can run into
 type TaskState int
@@ -28,7 +30,7 @@ const (
 
 type Job struct {
 	Name     string
-	jobFunc  JobFunc
+	Runner   JobRunner
 	state    TaskState
 	RunStart time.Time
 	RunEnd   time.Time
@@ -42,11 +44,11 @@ type Job struct {
 }
 
 // New creates a new Job
-func New(name string, fn JobFunc) *Job {
+func New(name string, runner JobRunner) *Job {
 	return &Job{
 		Name:    name,
 		EntryID: -1,
-		jobFunc: fn,
+		Runner:  runner,
 	}
 }
 
@@ -64,7 +66,7 @@ func (j *Job) setState(state TaskState, trigger bool) {
 // Run starts the job
 func (j *Job) Run() {
 	defer func() {
-		j.RunEnd = time.Now().UTC()
+		j.RunEnd = Now()
 		j.setState(Idle, true)
 		cleanCron()
 
@@ -86,8 +88,8 @@ func (j *Job) Run() {
 	}
 
 	j.setState(Running, true)
-	j.RunStart = time.Now().UTC()
-	j.Result = j.jobFunc()
+	j.RunStart = Now()
+	j.Result = j.Runner.Run()
 }
 
 // String  is the Jobs string representation

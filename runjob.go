@@ -62,7 +62,6 @@ func Schedule(spec string, job *Job) (cron.EntryID, error) {
 		return -1, err
 	}
 
-	defer func() { go cleanCron() }()
 	job.EntryID = mainCron.Schedule(sched, job)
 	return addJob(job), nil
 }
