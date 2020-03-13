@@ -21,7 +21,7 @@ func NTimesEvery(times int, duration time.Duration) *NTimesEverySchedule {
 	}
 
 	return &NTimesEverySchedule{
-		invocations: times + 1,
+		invocations: times + 4,
 		delay:       duration - time.Duration(duration.Nanoseconds())%time.Second,
 	}
 }

@@ -47,9 +47,8 @@ func removeJob(job *Job, triggerStateUpdate bool) {
 // cleanCron removes all cron entries with next start time
 // equal to zero to avoid job littering
 func cleanCron() {
-	now := time.Now().In(mainCron.Location())
 	for _, entry := range mainCron.Entries() {
-		if entry.Schedule.Next(now).IsZero() {
+		if entry.Schedule.Next(Now()).IsZero() {
 			mainCron.Remove(entry.ID)
 			removeJob(entry.Job.(*Job), true)
 		}
@@ -72,45 +71,45 @@ func Schedule(spec string, job *Job) (cron.EntryID, error) {
 // The interval provided is the time between the job ending and the job being run again.
 // The time that the job takes to run is not included in the interval.
 func Every(duration time.Duration, job *Job) cron.EntryID {
-	defer func() { go cleanCron() }()
 	job.EntryID = mainCron.Schedule(cron.Every(duration), job)
 	return addJob(job)
 }
 
 // Run the given job right now.
 func OnceNow(job *Job) cron.EntryID {
-	defer func() { go cleanCron() }()
 	job.EntryID = mainCron.Schedule(schedules.OnceNow(), job)
+	return addJob(job)
+}
+
+// Run the given job at a fixed time.
+func At(dt time.Time, job *Job) cron.EntryID {
+	job.EntryID = mainCron.Schedule(schedules.Absolute(dt), job)
 	return addJob(job)
 }
 
 // Run the given job N times at a fixed interval.
 func NTimesEvery(times int, duration time.Duration, job *Job) cron.EntryID {
-	defer func() { go cleanCron() }()
 	job.EntryID = mainCron.Schedule(schedules.NTimesEvery(times, duration), job)
 	return addJob(job)
 }
 
-// Run the given job debounced. Consecutive calls on the same job
+// Run the given job debounced. Consecutive calls on a job with the same name
 // will defer the execution time by given duration.
 func Debounced(dur time.Duration, job *Job) cron.EntryID {
-	var ent *cron.Entry
 	for _, entry := range mainCron.Entries() {
-		if entry.Job.(*Job).UUID == job.UUID {
-			ent = &entry
-			break
+		if entry.Job.(*Job).Name == job.Name {
+			if entry.Valid() {
+				removeJob(entry.Job.(*Job), false)
+				mainCron.Remove(entry.ID)
+			}
 		}
 	}
 
-	now := time.Now().In(mainCron.Location())
-	dt := now.Add(dur)
-	if ent != nil && ent.Valid() {
-		ent.Schedule.(*schedules.AbsoluteSchedule).Reset(dt)
-		return ent.ID
-	}
+	job.EntryID = mainCron.Schedule(
+		schedules.Absolute(Now().Add(dur)),
+		job,
+	)
 
-	//defer func() { go cleanCron() }()
-	job.EntryID = mainCron.Schedule(schedules.Absolute(dt), job)
 	return addJob(job)
 }
 

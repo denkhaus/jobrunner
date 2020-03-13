@@ -2,6 +2,7 @@ package jobrunner
 
 import (
 	"context"
+	"time"
 
 	"github.com/robfig/cron/v3"
 )
@@ -21,4 +22,8 @@ func Start(ctx context.Context, opts ...Option) {
 
 	mainCron.Start()
 	go monitorStateUpdates(ctx, options.StateUpdateDuration)
+}
+
+func Now() time.Time {
+	return time.Now().In(mainCron.Location())
 }

@@ -11,18 +11,10 @@ type AbsoluteSchedule struct {
 	dt time.Time
 }
 
-// AbsoluteSchedule returns a crontab Schedule that runs  at an absolute time.
+// AbsoluteSchedule returns a crontab Schedule that runs at an absolute time.
 func Absolute(dt time.Time) *AbsoluteSchedule {
 	return &AbsoluteSchedule{
 		dt: dt,
-	}
-}
-
-func (p *AbsoluteSchedule) Reset(dt time.Time) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if !p.dt.IsZero() {
-		p.dt = dt
 	}
 }
 
@@ -30,11 +22,8 @@ func (p *AbsoluteSchedule) Reset(dt time.Time) {
 func (p *AbsoluteSchedule) Next(t time.Time) time.Time {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-
 	if !p.dt.IsZero() && p.dt.Before(t) {
-		dt := p.dt
 		p.dt = time.Time{}
-		return dt
 	}
 
 	return p.dt
