@@ -30,8 +30,8 @@ const (
 )
 
 type Job struct {
-	Name     string
-	Runner   JobRunner
+	name     string
+	runner   JobRunner
 	state    JobState
 	runStart time.Time
 	runEnd   time.Time
@@ -48,6 +48,14 @@ func (j *Job) State() JobState {
 	j.stateMu.Lock()
 	defer j.stateMu.Unlock()
 	return j.state
+}
+
+func (j *Job) Name() string {
+	return j.name
+}
+
+func (j *Job) Runner() JobRunner {
+	return j.runner
 }
 
 func (j *Job) Prev() time.Time {
@@ -69,9 +77,9 @@ func (j *Job) RunEnd() time.Time {
 // New creates a new Job
 func New(name string, runner JobRunner) *Job {
 	return &Job{
-		Name:    name,
+		name:    name,
 		entryID: -1,
-		Runner:  runner,
+		runner:  runner,
 	}
 }
 
@@ -112,18 +120,18 @@ func (j *Job) Run() {
 
 	j.setState(Running, true)
 	j.runStart = Now()
-	j.result = j.Runner.Run()
+	j.result = j.runner.Run()
 }
 
 // String  is the Jobs string representation
 func (j *Job) String() string {
-	return fmt.Sprintf("%s-%s", j.Name, j.state)
+	return fmt.Sprintf("%s-%s", j.Name(), j.state)
 }
 
 // hash computes the Jobs hash value. Used to determne changed state.
 func (j *Job) hash() []byte {
 	h := make([]byte, 16)
-	h = xor16(h, hashMd5([]byte(j.Name)))
+	h = xor16(h, hashMd5([]byte(j.name)))
 	h = xor16(h, hashMd5([]byte(j.runStart.Format(time.RFC3339))))
 	h = xor16(h, hashMd5([]byte(j.runEnd.Format(time.RFC3339))))
 	h = xor16(h, hashMd5([]byte(j.prev.Format(time.RFC3339))))

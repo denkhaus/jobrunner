@@ -96,7 +96,7 @@ func NTimesEvery(times int, duration time.Duration, job *Job) cron.EntryID {
 // will defer the execution time by given duration.
 func Debounced(dur time.Duration, job *Job) cron.EntryID {
 	for _, entry := range mainCron.Entries() {
-		if entry.Job.(*Job).Name == job.Name {
+		if entry.Job.(*Job).name == job.name {
 			if entry.Valid() {
 				removeJob(entry.Job.(*Job), false)
 				mainCron.Remove(entry.ID)
