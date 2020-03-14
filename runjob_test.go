@@ -14,8 +14,8 @@ var (
 func stateChanged(j *Job) {
 	fmt.Printf("%s-%s p[%s] n[%s]\n",
 		j.Name, j.state,
-		j.Prev.Format(time.RFC3339),
-		j.Next.Format(time.RFC3339))
+		j.prev.Format(time.RFC3339),
+		j.next.Format(time.RFC3339))
 
 }
 

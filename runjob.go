@@ -30,10 +30,10 @@ func addJob(job *Job) cron.EntryID {
 	defer jobListMu.Unlock()
 
 	job.setState(Idle, false)
-	jobList[job.EntryID] = job
+	jobList[job.entryID] = job
 	triggerOnJobStateChanged(job)
 
-	return job.EntryID
+	return job.entryID
 }
 
 //removeJob removes a Job and triggers a state update if needed
@@ -41,7 +41,7 @@ func removeJob(job *Job, triggerStateUpdate bool) {
 	jobListMu.Lock()
 	defer jobListMu.Unlock()
 	job.setState(Finished, triggerStateUpdate)
-	delete(jobList, job.EntryID)
+	delete(jobList, job.entryID)
 }
 
 // cleanCron removes all cron entries with next start time
@@ -62,7 +62,7 @@ func Schedule(spec string, job *Job) (cron.EntryID, error) {
 		return -1, err
 	}
 
-	job.EntryID = mainCron.Schedule(sched, job)
+	job.entryID = mainCron.Schedule(sched, job)
 	return addJob(job), nil
 }
 
@@ -70,25 +70,25 @@ func Schedule(spec string, job *Job) (cron.EntryID, error) {
 // The interval provided is the time between the job ending and the job being run again.
 // The time that the job takes to run is not included in the interval.
 func Every(duration time.Duration, job *Job) cron.EntryID {
-	job.EntryID = mainCron.Schedule(cron.Every(duration), job)
+	job.entryID = mainCron.Schedule(cron.Every(duration), job)
 	return addJob(job)
 }
 
 // Run the given job right now.
 func OnceNow(job *Job) cron.EntryID {
-	job.EntryID = mainCron.Schedule(schedules.OnceNow(), job)
+	job.entryID = mainCron.Schedule(schedules.OnceNow(), job)
 	return addJob(job)
 }
 
 // Run the given job at a fixed time.
 func At(dt time.Time, job *Job) cron.EntryID {
-	job.EntryID = mainCron.Schedule(schedules.Absolute(dt), job)
+	job.entryID = mainCron.Schedule(schedules.Absolute(dt), job)
 	return addJob(job)
 }
 
 // Run the given job N times at a fixed interval.
 func NTimesEvery(times int, duration time.Duration, job *Job) cron.EntryID {
-	job.EntryID = mainCron.Schedule(schedules.NTimesEvery(times, duration), job)
+	job.entryID = mainCron.Schedule(schedules.NTimesEvery(times, duration), job)
 	return addJob(job)
 }
 
@@ -104,7 +104,7 @@ func Debounced(dur time.Duration, job *Job) cron.EntryID {
 		}
 	}
 
-	job.EntryID = mainCron.Schedule(
+	job.entryID = mainCron.Schedule(
 		schedules.Absolute(Now().Add(dur)),
 		job,
 	)

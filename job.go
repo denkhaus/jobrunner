@@ -1,6 +1,6 @@
 package jobrunner
 
-//go:generate stringer -type=TaskState
+//go:generate stringer -type=JobState
 
 import (
 	"bytes"
@@ -20,10 +20,11 @@ type JobRunner interface {
 }
 
 //TaskState is the state a Job can run into
-type TaskState int
+type JobState int
 
 const (
-	Idle TaskState = iota + 1
+	Initializing JobState = iota + 1
+	Idle
 	Running
 	Finished
 )
@@ -31,29 +32,51 @@ const (
 type Job struct {
 	Name     string
 	Runner   JobRunner
-	state    TaskState
-	RunStart time.Time
-	RunEnd   time.Time
-	Next     time.Time
-	Prev     time.Time
-	Result   error
-	EntryID  cron.EntryID
+	state    JobState
+	runStart time.Time
+	runEnd   time.Time
+	next     time.Time
+	prev     time.Time
+	result   error
+	entryID  cron.EntryID
 	lastHash []byte
 	running  sync.Mutex
 	stateMu  sync.Mutex
+}
+
+func (j *Job) State() JobState {
+	j.stateMu.Lock()
+	defer j.stateMu.Unlock()
+	return j.state
+}
+
+func (j *Job) Prev() time.Time {
+	return j.prev
+}
+
+func (j *Job) Next() time.Time {
+	return j.next
+}
+
+func (j *Job) RunStart() time.Time {
+	return j.runStart
+}
+
+func (j *Job) RunEnd() time.Time {
+	return j.runEnd
 }
 
 // New creates a new Job
 func New(name string, runner JobRunner) *Job {
 	return &Job{
 		Name:    name,
-		EntryID: -1,
+		entryID: -1,
 		Runner:  runner,
 	}
 }
 
 // setState sets the Jobs state
-func (j *Job) setState(state TaskState, trigger bool) {
+func (j *Job) setState(state JobState, trigger bool) {
 	j.stateMu.Lock()
 	j.state = state
 	j.stateMu.Unlock()
@@ -66,7 +89,7 @@ func (j *Job) setState(state TaskState, trigger bool) {
 // Run starts the job
 func (j *Job) Run() {
 	defer func() {
-		j.RunEnd = Now()
+		j.runEnd = Now()
 		j.setState(Idle, true)
 		cleanCron()
 
@@ -88,8 +111,8 @@ func (j *Job) Run() {
 	}
 
 	j.setState(Running, true)
-	j.RunStart = Now()
-	j.Result = j.Runner.Run()
+	j.runStart = Now()
+	j.result = j.Runner.Run()
 }
 
 // String  is the Jobs string representation
@@ -101,14 +124,14 @@ func (j *Job) String() string {
 func (j *Job) hash() []byte {
 	h := make([]byte, 16)
 	h = xor16(h, hashMd5([]byte(j.Name)))
-	h = xor16(h, hashMd5([]byte(j.RunStart.Format(time.RFC3339))))
-	h = xor16(h, hashMd5([]byte(j.RunEnd.Format(time.RFC3339))))
-	h = xor16(h, hashMd5([]byte(j.Prev.Format(time.RFC3339))))
-	h = xor16(h, hashMd5([]byte(j.Next.Format(time.RFC3339))))
+	h = xor16(h, hashMd5([]byte(j.runStart.Format(time.RFC3339))))
+	h = xor16(h, hashMd5([]byte(j.runEnd.Format(time.RFC3339))))
+	h = xor16(h, hashMd5([]byte(j.prev.Format(time.RFC3339))))
+	h = xor16(h, hashMd5([]byte(j.next.Format(time.RFC3339))))
 	h = xor16(h, hashMd5([]byte(strconv.Itoa(int(j.state)))))
-	h = xor16(h, hashMd5([]byte(strconv.Itoa(int(j.EntryID)))))
-	if j.Result != nil {
-		h = xor16(h, hashMd5([]byte(j.Result.Error())))
+	h = xor16(h, hashMd5([]byte(strconv.Itoa(int(j.entryID)))))
+	if j.result != nil {
+		h = xor16(h, hashMd5([]byte(j.result.Error())))
 	}
 
 	return h

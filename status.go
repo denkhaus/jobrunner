@@ -32,8 +32,8 @@ func monitorStateUpdates(ctx context.Context, dur time.Duration) {
 
 		for _, entry := range mainCron.Entries() {
 			jobList[entry.ID].stateMu.Lock()
-			jobList[entry.ID].Next = entry.Next
-			jobList[entry.ID].Prev = entry.Prev
+			jobList[entry.ID].next = entry.Next
+			jobList[entry.ID].prev = entry.Prev
 			jobList[entry.ID].stateMu.Unlock()
 			triggerOnJobStateChanged(jobList[entry.ID])
 		}
