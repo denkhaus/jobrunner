@@ -17,6 +17,10 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
+const (
+	InvalidEntryID = -1
+)
+
 var (
 	//jobList keeps our own list of jobs to maintain detailed state
 	jobList = make(map[cron.EntryID]*Job)
@@ -59,7 +63,7 @@ func cleanCron() {
 func Schedule(spec string, job *Job) (cron.EntryID, error) {
 	sched, err := cron.ParseStandard(spec)
 	if err != nil {
-		return -1, err
+		return InvalidEntryID, err
 	}
 
 	job.entryID = mainCron.Schedule(sched, job)
@@ -82,6 +86,9 @@ func OnceNow(job *Job) cron.EntryID {
 
 // Run the given job at a fixed time.
 func At(dt time.Time, job *Job) cron.EntryID {
+	if dt.Before(Now()) {
+		return InvalidEntryID
+	}
 	job.entryID = mainCron.Schedule(schedules.Absolute(dt), job)
 	return addJob(job)
 }

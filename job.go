@@ -78,7 +78,7 @@ func (j *Job) RunEnd() time.Time {
 func New(name string, runner JobRunner) *Job {
 	return &Job{
 		name:    name,
-		entryID: -1,
+		entryID: InvalidEntryID,
 		runner:  runner,
 	}
 }
