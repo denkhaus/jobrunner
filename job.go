@@ -50,6 +50,13 @@ func (j *Job) State() JobState {
 	return j.state
 }
 
+func (j *Job) Result() string {
+	if j.result != nil {
+		return j.result.Error()
+	}
+	return "success"
+}
+
 func (j *Job) Name() string {
 	return j.name
 }
