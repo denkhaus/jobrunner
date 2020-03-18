@@ -122,8 +122,10 @@ func (j *Job) Run() {
 		defer func() { <-options.WorkPermits }()
 	}
 
-	j.setState(Running, true)
 	j.runStart = Now()
+	j.prev = j.runStart
+	j.setState(Running, true)
+
 	j.result = j.runner.Run()
 }
 
