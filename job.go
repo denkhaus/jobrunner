@@ -150,7 +150,7 @@ func (j *Job) Run() {
 
 // String  is the Jobs string representation
 func (j *Job) String() string {
-	return fmt.Sprintf("%s-%s", j.Name(), j.State())
+	return fmt.Sprintf("%s-[%s->%s]", j.Name(), j.lastState, j.State())
 }
 
 // hash computes the Jobs hash value. Used to determine changed state.
