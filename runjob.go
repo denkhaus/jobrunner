@@ -33,9 +33,9 @@ func addJob(job *Job) cron.EntryID {
 	jobListMu.Lock()
 	defer jobListMu.Unlock()
 
-	job.setState(Idle, false)
+	job.setState(JobStateIdle, false)
 	jobList[job.entryID] = job
-	triggerOnJobStateChanged(job)
+	triggerOnJobChanged(job)
 
 	return job.entryID
 }
@@ -44,7 +44,7 @@ func addJob(job *Job) cron.EntryID {
 func removeJob(job *Job, triggerStateUpdate bool) {
 	jobListMu.Lock()
 	defer jobListMu.Unlock()
-	job.setState(Finished, triggerStateUpdate)
+	job.setState(JobStateFinished, triggerStateUpdate)
 	delete(jobList, job.entryID)
 }
 
@@ -67,6 +67,7 @@ func Schedule(spec string, job *Job) (cron.EntryID, error) {
 	}
 
 	job.entryID = mainCron.Schedule(sched, job)
+	job.typ = JobTypeOnce
 	return addJob(job), nil
 }
 
@@ -75,12 +76,15 @@ func Schedule(spec string, job *Job) (cron.EntryID, error) {
 // The time that the job takes to run is not included in the interval.
 func Every(duration time.Duration, job *Job) cron.EntryID {
 	job.entryID = mainCron.Schedule(cron.Every(duration), job)
+	job.typ = JobTypeRecurring
 	return addJob(job)
 }
 
 // Run the given job right now.
 func OnceNow(job *Job) cron.EntryID {
+
 	job.entryID = mainCron.Schedule(schedules.OnceNow(), job)
+	job.typ = JobTypeOnce
 	return addJob(job)
 }
 
@@ -89,13 +93,16 @@ func At(dt time.Time, job *Job) cron.EntryID {
 	if dt.Before(Now()) {
 		return InvalidEntryID
 	}
+
 	job.entryID = mainCron.Schedule(schedules.Absolute(dt), job)
+	job.typ = JobTypeOnce
 	return addJob(job)
 }
 
 // Run the given job N times at a fixed interval.
 func NTimesEvery(times int, duration time.Duration, job *Job) cron.EntryID {
 	job.entryID = mainCron.Schedule(schedules.NTimesEvery(times, duration), job)
+	job.typ = JobTypeRecurring
 	return addJob(job)
 }
 

@@ -13,7 +13,7 @@ var (
 
 func stateChanged(j *Job) {
 	fmt.Printf("%s-%s p[%s] n[%s]\n",
-		j.name, j.state,
+		j.name, j.currentState,
 		j.prev.Format(time.RFC3339),
 		j.next.Format(time.RFC3339))
 
@@ -45,7 +45,7 @@ func NewTestRunner() *TestRunner {
 }
 
 func TestDebounce(t *testing.T) {
-	OnJobStateChanged(stateChanged)
+	OnJobChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	Start(ctx, testOpts...)
@@ -65,7 +65,7 @@ func TestDebounce(t *testing.T) {
 }
 
 func TestNTimesEvery(t *testing.T) {
-	OnJobStateChanged(stateChanged)
+	OnJobChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	Start(ctx, testOpts...)
@@ -83,7 +83,7 @@ func TestNTimesEvery(t *testing.T) {
 }
 
 func TestOnceNow(t *testing.T) {
-	OnJobStateChanged(stateChanged)
+	OnJobChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	Start(ctx, testOpts...)
@@ -101,7 +101,7 @@ func TestOnceNow(t *testing.T) {
 }
 
 func TestAt(t *testing.T) {
-	OnJobStateChanged(stateChanged)
+	OnJobChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	Start(ctx, testOpts...)
@@ -119,7 +119,7 @@ func TestAt(t *testing.T) {
 }
 
 func TestEvery(t *testing.T) {
-	OnJobStateChanged(stateChanged)
+	OnJobChanged(stateChanged)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	Start(ctx)

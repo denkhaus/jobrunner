@@ -8,15 +8,15 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[Initializing-1]
-	_ = x[Idle-2]
-	_ = x[Running-3]
-	_ = x[Finished-4]
+	_ = x[JobStateInitializing-1]
+	_ = x[JobStateIdle-2]
+	_ = x[JobStateRunning-3]
+	_ = x[JobStateFinished-4]
 }
 
-const _JobState_name = "InitializingIdleRunningFinished"
+const _JobState_name = "JobStateInitializingJobStateIdleJobStateRunningJobStateFinished"
 
-var _JobState_index = [...]uint8{0, 12, 16, 23, 31}
+var _JobState_index = [...]uint8{0, 20, 32, 47, 63}
 
 func (i JobState) String() string {
 	i -= 1

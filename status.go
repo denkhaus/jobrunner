@@ -11,13 +11,13 @@ var (
 	onJobStateChanged JobChangedFunc
 )
 
-// With OnJobStateChanged you ddefine the state update callback
-func OnJobStateChanged(fn JobChangedFunc) {
+// With OnJobChanged you define the state update callback
+func OnJobChanged(fn JobChangedFunc) {
 	onJobStateChanged = fn
 }
 
-//triggerOnJobStateChanged triggers state updates if a job has changed
-func triggerOnJobStateChanged(job *Job) {
+//triggerOnJobChanged triggers state updates if a job has changed
+func triggerOnJobChanged(job *Job) {
 	if onJobStateChanged != nil && job.changed() {
 		onJobStateChanged(job)
 	}
@@ -35,7 +35,7 @@ func monitorStateUpdates(ctx context.Context, dur time.Duration) {
 			jobList[entry.ID].next = entry.Next
 			jobList[entry.ID].prev = entry.Prev
 			jobList[entry.ID].stateMu.Unlock()
-			triggerOnJobStateChanged(jobList[entry.ID])
+			triggerOnJobChanged(jobList[entry.ID])
 		}
 	}
 

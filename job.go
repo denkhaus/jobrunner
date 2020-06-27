@@ -19,35 +19,49 @@ type JobRunner interface {
 	Run() error
 }
 
-//TaskState is the state a Job can run into
+//JobState is the state a Job can run into
 type JobState int
 
 const (
-	Initializing JobState = iota + 1
-	Idle
-	Running
-	Finished
+	JobStateInitializing JobState = iota + 1
+	JobStateIdle
+	JobStateRunning
+	JobStateFinished
+)
+
+//JobType defines th jobs running behaviour
+type JobType int
+
+const (
+	JobTypeOnce JobType = iota + 1
+	JobTypeRecurring
 )
 
 type Job struct {
-	name     string
-	runner   JobRunner
-	state    JobState
-	runStart time.Time
-	runEnd   time.Time
-	next     time.Time
-	prev     time.Time
-	result   error
-	entryID  cron.EntryID
-	lastHash []byte
-	running  sync.Mutex
-	stateMu  sync.Mutex
+	name         string
+	runner       JobRunner
+	currentState JobState
+	lastState    JobState
+	typ          JobType
+	runStart     time.Time
+	runEnd       time.Time
+	next         time.Time
+	prev         time.Time
+	result       error
+	entryID      cron.EntryID
+	lastHash     []byte
+	running      sync.Mutex
+	stateMu      sync.Mutex
+}
+
+func (j *Job) Type() JobType {
+	return j.typ
 }
 
 func (j *Job) State() JobState {
 	j.stateMu.Lock()
 	defer j.stateMu.Unlock()
-	return j.state
+	return j.currentState
 }
 
 func (j *Job) Result() error {
@@ -90,11 +104,12 @@ func New(name string, runner JobRunner) *Job {
 // setState sets the Jobs state
 func (j *Job) setState(state JobState, trigger bool) {
 	j.stateMu.Lock()
-	j.state = state
+	j.lastState = j.currentState
+	j.currentState = state
 	j.stateMu.Unlock()
 
 	if trigger {
-		triggerOnJobStateChanged(j)
+		triggerOnJobChanged(j)
 	}
 }
 
@@ -102,7 +117,12 @@ func (j *Job) setState(state JobState, trigger bool) {
 func (j *Job) Run() {
 	defer func() {
 		j.runEnd = Now()
-		j.setState(Idle, true)
+		if j.typ == JobTypeRecurring {
+			j.setState(JobStateIdle, true)
+		} else {
+			j.setState(JobStateFinished, true)
+		}
+
 		cleanCron()
 
 		if err := recover(); err != nil {
@@ -123,18 +143,17 @@ func (j *Job) Run() {
 	}
 
 	j.runStart = Now()
-	j.prev = j.runStart
-	j.setState(Running, true)
-
+	j.setState(JobStateRunning, true)
 	j.result = j.runner.Run()
+	j.prev = j.runStart
 }
 
 // String  is the Jobs string representation
 func (j *Job) String() string {
-	return fmt.Sprintf("%s-%s", j.Name(), j.state)
+	return fmt.Sprintf("%s-%s", j.Name(), j.State())
 }
 
-// hash computes the Jobs hash value. Used to determne changed state.
+// hash computes the Jobs hash value. Used to determine changed state.
 func (j *Job) hash() []byte {
 	h := make([]byte, 16)
 	h = xor16(h, hashMd5([]byte(j.name)))
@@ -142,7 +161,8 @@ func (j *Job) hash() []byte {
 	h = xor16(h, hashMd5([]byte(j.runEnd.Format(time.RFC3339))))
 	h = xor16(h, hashMd5([]byte(j.prev.Format(time.RFC3339))))
 	h = xor16(h, hashMd5([]byte(j.next.Format(time.RFC3339))))
-	h = xor16(h, hashMd5([]byte(strconv.Itoa(int(j.state)))))
+	h = xor16(h, hashMd5([]byte(strconv.Itoa(int(j.lastState)))))
+	h = xor16(h, hashMd5([]byte(strconv.Itoa(int(j.currentState)))))
 	h = xor16(h, hashMd5([]byte(strconv.Itoa(int(j.entryID)))))
 	if j.result != nil {
 		h = xor16(h, hashMd5([]byte(j.result.Error())))
