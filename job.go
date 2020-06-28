@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/robfig/cron/v3"
+	"golang.org/x/sync/semaphore"
 )
 
 type JobRunner interface {
@@ -53,7 +54,7 @@ type Job struct {
 	result            error
 	entryID           cron.EntryID
 	lastHash          []byte
-	running           sync.Mutex
+	running           *semaphore.Weighted
 	stateMu           sync.Mutex
 }
 
@@ -99,6 +100,7 @@ func (j *Job) RunEnd() time.Time {
 func New(name string, omitRunOnDeferred bool, runner JobRunner) *Job {
 	return &Job{
 		name:              name,
+		running:           semaphore.NewWeighted(1),
 		omitRunOnDeferred: omitRunOnDeferred,
 		entryID:           InvalidEntryID,
 		runner:            runner,
@@ -137,12 +139,14 @@ func (j *Job) Run() {
 	}()
 
 	if !options.SelfConcurrent {
-		j.setState(JobStateExecutionDeferred, true)
-		if j.omitRunOnDeferred {
-			return
+		if !j.running.TryAcquire(1) {
+			j.setState(JobStateExecutionDeferred, true)
+			if j.omitRunOnDeferred {
+				return
+			}
 		}
-		j.running.Lock()
-		defer j.running.Unlock()
+
+		defer j.running.Release(1)
 	}
 
 	if options.WorkPermits != nil {
