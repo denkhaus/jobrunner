@@ -23,10 +23,12 @@ type JobRunner interface {
 type JobState int
 
 const (
-	JobStateInitializing JobState = iota + 1
+	JobStateNew JobState = iota
+	JobStateInitializing
 	JobStateIdle
 	JobStateRunning
 	JobStateFinished
+	JobStateExecutionDeferred
 )
 
 //JobType defines th jobs running behaviour
@@ -133,11 +135,13 @@ func (j *Job) Run() {
 	}()
 
 	if !options.SelfConcurrent {
+		j.setState(JobStateExecutionDeferred, true)
 		j.running.Lock()
 		defer j.running.Unlock()
 	}
 
 	if options.WorkPermits != nil {
+		j.setState(JobStateExecutionDeferred, true)
 		options.WorkPermits <- struct{}{}
 		defer func() { <-options.WorkPermits }()
 	}
