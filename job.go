@@ -146,10 +146,13 @@ func (j *Job) Run() {
 	}
 
 	if options.WorkPermits != nil {
-		j.setState(JobStateExecutionDeferred, true)
-		if j.omitRunOnDeferred {
-			return
+		if len(options.WorkPermits) == cap(options.WorkPermits) {
+			j.setState(JobStateExecutionDeferred, true)
+			if j.omitRunOnDeferred {
+				return
+			}
 		}
+
 		options.WorkPermits <- struct{}{}
 		defer func() { <-options.WorkPermits }()
 	}
