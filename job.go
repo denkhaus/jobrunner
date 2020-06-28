@@ -119,24 +119,33 @@ func (j *Job) setState(state JobState, trigger bool) {
 	}
 }
 
+//signalRunEnd sets the apropriate job state and cland cron entries
+func (j *Job) signalRunEnd() {
+	j.prev = j.runStart
+	j.runEnd = Now()
+	if j.typ == JobTypeRecurring {
+		j.setState(JobStateIdle, true)
+	} else {
+		j.setState(JobStateFinished, true)
+	}
+
+	cleanCron()
+}
+
 // Run starts the job
 func (j *Job) Run() {
+	fmt.Printf("jobrunner: enter run for job %s\n", j)
 	defer func() {
-		j.runEnd = Now()
-		if j.typ == JobTypeRecurring {
-			j.setState(JobStateIdle, true)
-		} else {
-			j.setState(JobStateFinished, true)
-		}
-
-		cleanCron()
-
 		if err := recover(); err != nil {
 			var buf bytes.Buffer
 			logger := log.New(&buf, "JobRunner Log: ", log.Lshortfile)
 			logger.Panic(err, "\n", string(debug.Stack()))
 		}
 	}()
+
+	if j.currentState == JobStateRunning {
+		return
+	}
 
 	if !options.SelfConcurrent {
 		if !j.running.TryAcquire(1) {
@@ -164,7 +173,7 @@ func (j *Job) Run() {
 	j.runStart = Now()
 	j.setState(JobStateRunning, true)
 	j.result = j.runner.Run()
-	j.prev = j.runStart
+	j.signalRunEnd()
 }
 
 // String  is the Jobs string representation
