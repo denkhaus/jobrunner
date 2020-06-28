@@ -52,7 +52,7 @@ func TestDebounce(t *testing.T) {
 	defer cancel()
 
 	runner := NewTestRunner()
-	job := New("Debounced", runner)
+	job := New("Debounced", false, runner)
 	Debounced(5*time.Second, job)
 	time.Sleep(3 * time.Second)
 	Debounced(5*time.Second, job)
@@ -72,7 +72,7 @@ func TestNTimesEvery(t *testing.T) {
 	defer cancel()
 
 	runner := NewTestRunner()
-	job := New("NTimesEvery", runner)
+	job := New("NTimesEvery", false, runner)
 	NTimesEvery(8, 2*time.Second, job)
 	time.Sleep(20 * time.Second)
 
@@ -90,7 +90,7 @@ func TestOnceNow(t *testing.T) {
 	defer cancel()
 
 	runner := NewTestRunner()
-	job := New("OnceNow", runner)
+	job := New("OnceNow", false, runner)
 	OnceNow(job)
 	time.Sleep(10 * time.Second)
 
@@ -108,7 +108,7 @@ func TestAt(t *testing.T) {
 	defer cancel()
 
 	runner := NewTestRunner()
-	job := New("At", runner)
+	job := New("At", false, runner)
 	At(Now().Add(5*time.Second), job)
 	time.Sleep(11 * time.Second)
 
@@ -125,7 +125,7 @@ func TestEvery(t *testing.T) {
 	Start(ctx)
 	defer cancel()
 	runner := NewTestRunner()
-	job := New("Every", runner)
+	job := New("Every", false, runner)
 	Every(2*time.Second, job)
 	time.Sleep(11 * time.Second)
 

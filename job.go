@@ -40,20 +40,21 @@ const (
 )
 
 type Job struct {
-	name         string
-	runner       JobRunner
-	currentState JobState
-	lastState    JobState
-	typ          JobType
-	runStart     time.Time
-	runEnd       time.Time
-	next         time.Time
-	prev         time.Time
-	result       error
-	entryID      cron.EntryID
-	lastHash     []byte
-	running      sync.Mutex
-	stateMu      sync.Mutex
+	name              string
+	runner            JobRunner
+	omitRunOnDeferred bool
+	currentState      JobState
+	lastState         JobState
+	typ               JobType
+	runStart          time.Time
+	runEnd            time.Time
+	next              time.Time
+	prev              time.Time
+	result            error
+	entryID           cron.EntryID
+	lastHash          []byte
+	running           sync.Mutex
+	stateMu           sync.Mutex
 }
 
 func (j *Job) Type() JobType {
@@ -95,11 +96,12 @@ func (j *Job) RunEnd() time.Time {
 }
 
 // New creates a new Job
-func New(name string, runner JobRunner) *Job {
+func New(name string, omitRunOnDeferred bool, runner JobRunner) *Job {
 	return &Job{
-		name:    name,
-		entryID: InvalidEntryID,
-		runner:  runner,
+		name:              name,
+		omitRunOnDeferred: omitRunOnDeferred,
+		entryID:           InvalidEntryID,
+		runner:            runner,
 	}
 }
 
@@ -136,12 +138,18 @@ func (j *Job) Run() {
 
 	if !options.SelfConcurrent {
 		j.setState(JobStateExecutionDeferred, true)
+		if j.omitRunOnDeferred {
+			return
+		}
 		j.running.Lock()
 		defer j.running.Unlock()
 	}
 
 	if options.WorkPermits != nil {
 		j.setState(JobStateExecutionDeferred, true)
+		if j.omitRunOnDeferred {
+			return
+		}
 		options.WorkPermits <- struct{}{}
 		defer func() { <-options.WorkPermits }()
 	}
