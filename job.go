@@ -6,14 +6,11 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
-	"log"
-	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/robfig/cron/v3"
-	"golang.org/x/sync/semaphore"
 )
 
 type JobRunner interface {
@@ -29,33 +26,30 @@ const (
 	JobStateIdle
 	JobStateRunning
 	JobStateFinished
-	JobStateExecutionDeferred
 )
 
-//JobType defines th jobs running behaviour
+//JobType defines the jobs running behaviour
 type JobType int
 
 const (
-	JobTypeOnce JobType = iota + 1
+	JobTypeOnce JobType = iota
 	JobTypeRecurring
 )
 
 type Job struct {
-	name              string
-	runner            JobRunner
-	omitRunOnDeferred bool
-	currentState      JobState
-	lastState         JobState
-	typ               JobType
-	runStart          time.Time
-	runEnd            time.Time
-	next              time.Time
-	prev              time.Time
-	result            error
-	entryID           cron.EntryID
-	lastHash          []byte
-	running           *semaphore.Weighted
-	stateMu           sync.Mutex
+	name         string
+	runner       JobRunner
+	currentState JobState
+	lastState    JobState
+	typ          JobType
+	runStart     time.Time
+	runEnd       time.Time
+	next         time.Time
+	prev         time.Time
+	result       error
+	entryID      cron.EntryID
+	lastHash     []byte
+	stateMu      sync.Mutex
 }
 
 func (j *Job) Type() JobType {
@@ -97,13 +91,11 @@ func (j *Job) RunEnd() time.Time {
 }
 
 // New creates a new Job
-func New(name string, omitRunOnDeferred bool, runner JobRunner) *Job {
+func New(name string, runner JobRunner) *Job {
 	return &Job{
-		name:              name,
-		running:           semaphore.NewWeighted(1),
-		omitRunOnDeferred: omitRunOnDeferred,
-		entryID:           InvalidEntryID,
-		runner:            runner,
+		name:    name,
+		entryID: InvalidEntryID,
+		runner:  runner,
 	}
 }
 
@@ -134,41 +126,6 @@ func (j *Job) signalRunEnd() {
 
 // Run starts the job
 func (j *Job) Run() {
-	defer func() {
-		if err := recover(); err != nil {
-			var buf bytes.Buffer
-			logger := log.New(&buf, "JobRunner Log: ", log.Lshortfile)
-			logger.Panic(err, "\n", string(debug.Stack()))
-		}
-	}()
-
-	if j.currentState == JobStateRunning {
-		return
-	}
-
-	if !options.SelfConcurrent {
-		if !j.running.TryAcquire(1) {
-			j.setState(JobStateExecutionDeferred, true)
-			if j.omitRunOnDeferred {
-				return
-			}
-		}
-
-		defer j.running.Release(1)
-	}
-
-	if options.WorkPermits != nil {
-		if len(options.WorkPermits) == cap(options.WorkPermits) {
-			j.setState(JobStateExecutionDeferred, true)
-			if j.omitRunOnDeferred {
-				return
-			}
-		}
-
-		options.WorkPermits <- struct{}{}
-		defer func() { <-options.WorkPermits }()
-	}
-
 	j.runStart = Now()
 	j.setState(JobStateRunning, true)
 	j.result = j.runner.Run()

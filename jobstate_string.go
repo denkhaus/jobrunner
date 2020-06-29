@@ -13,12 +13,11 @@ func _() {
 	_ = x[JobStateIdle-2]
 	_ = x[JobStateRunning-3]
 	_ = x[JobStateFinished-4]
-	_ = x[JobStateExecutionDeferred-5]
 }
 
-const _JobState_name = "JobStateNewJobStateInitializingJobStateIdleJobStateRunningJobStateFinishedJobStateExecutionDeferred"
+const _JobState_name = "JobStateNewJobStateInitializingJobStateIdleJobStateRunningJobStateFinished"
 
-var _JobState_index = [...]uint8{0, 11, 31, 43, 58, 74, 99}
+var _JobState_index = [...]uint8{0, 11, 31, 43, 58, 74}
 
 func (i JobState) String() string {
 	if i < 0 || i >= JobState(len(_JobState_index)-1) {

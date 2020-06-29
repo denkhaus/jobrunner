@@ -21,8 +21,6 @@ func stateChanged(j *Job) {
 
 func init() {
 	testOpts = []Option{
-		WithPoolSize(10),
-		WithSelfConcurrent(false),
 		WithStateUpdateDuration(1 * time.Second),
 	}
 }
@@ -52,10 +50,10 @@ func TestDebounce(t *testing.T) {
 	defer cancel()
 
 	runner := NewTestRunner()
-	job := New("Debounced", false, runner)
-	Debounced(5*time.Second, job)
+	job := New("Debounced", runner)
+	Debounced(5*time.Second, job, BuildWrapperDefault)
 	time.Sleep(3 * time.Second)
-	Debounced(5*time.Second, job)
+	Debounced(5*time.Second, job, BuildWrapperDefault)
 	time.Sleep(12 * time.Second)
 
 	if runner.count != 1 {
@@ -72,8 +70,8 @@ func TestNTimesEvery(t *testing.T) {
 	defer cancel()
 
 	runner := NewTestRunner()
-	job := New("NTimesEvery", false, runner)
-	NTimesEvery(8, 2*time.Second, job)
+	job := New("NTimesEvery", runner)
+	NTimesEvery(8, 2*time.Second, job, BuildWrapperDefault)
 	time.Sleep(20 * time.Second)
 
 	if runner.count != 8 {
@@ -90,8 +88,8 @@ func TestOnceNow(t *testing.T) {
 	defer cancel()
 
 	runner := NewTestRunner()
-	job := New("OnceNow", false, runner)
-	OnceNow(job)
+	job := New("OnceNow", runner)
+	OnceNow(job, BuildWrapperDefault)
 	time.Sleep(10 * time.Second)
 
 	if runner.count != 1 {
@@ -108,8 +106,8 @@ func TestAt(t *testing.T) {
 	defer cancel()
 
 	runner := NewTestRunner()
-	job := New("At", false, runner)
-	At(Now().Add(5*time.Second), job)
+	job := New("At", runner)
+	At(Now().Add(5*time.Second), job, BuildWrapperDefault)
 	time.Sleep(11 * time.Second)
 
 	if runner.count != 1 {
@@ -125,8 +123,8 @@ func TestEvery(t *testing.T) {
 	Start(ctx)
 	defer cancel()
 	runner := NewTestRunner()
-	job := New("Every", false, runner)
-	Every(2*time.Second, job)
+	job := New("Every", runner)
+	Every(2*time.Second, job, BuildWrapperDefault)
 	time.Sleep(11 * time.Second)
 
 	if runner.count != 5 {
