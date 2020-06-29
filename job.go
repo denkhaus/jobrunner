@@ -119,7 +119,7 @@ func (j *Job) setState(state JobState, trigger bool) {
 	}
 }
 
-//signalRunEnd sets the apropriate job state and cland cron entries
+//signalRunEnd sets the appropriate job state and cleans cron entries
 func (j *Job) signalRunEnd() {
 	j.prev = j.runStart
 	j.runEnd = Now()
@@ -134,7 +134,6 @@ func (j *Job) signalRunEnd() {
 
 // Run starts the job
 func (j *Job) Run() {
-	fmt.Printf("jobrunner: enter run for job %s\n", j)
 	defer func() {
 		if err := recover(); err != nil {
 			var buf bytes.Buffer
