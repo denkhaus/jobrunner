@@ -47,11 +47,14 @@ func addJob(job *Job) cron.EntryID {
 }
 
 //removeJob removes a Job and triggers a state update if needed
-func removeJob(job *Job, triggerStateUpdate bool) {
+func removeJob(id cron.EntryID, triggerStateUpdate bool) {
 	jobListMu.Lock()
 	defer jobListMu.Unlock()
-	job.setState(JobStateFinished, triggerStateUpdate)
-	delete(jobList, job.entryID)
+	if job, ok := jobList[id]; ok {
+		job.setState(JobStateFinished, triggerStateUpdate)
+	}
+
+	delete(jobList, id)
 }
 
 // cleanCron removes all cron entries with next start time
@@ -60,7 +63,7 @@ func cleanCron() {
 	for _, entry := range mainCron.Entries() {
 		if entry.Schedule.Next(Now()).IsZero() {
 			mainCron.Remove(entry.ID)
-			removeJob(entry.Job.(*Job), true)
+			removeJob(entry.ID, true)
 		}
 	}
 }
@@ -117,7 +120,7 @@ func Debounced(dur time.Duration, job *Job, buildWrapper BuildWrapperFunc) cron.
 	for _, entry := range mainCron.Entries() {
 		if entry.Job.(*Job).name == job.name {
 			if entry.Valid() {
-				removeJob(entry.Job.(*Job), false)
+				removeJob(entry.ID, false)
 				mainCron.Remove(entry.ID)
 			}
 		}
